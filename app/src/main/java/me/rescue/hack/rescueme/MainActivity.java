@@ -3,6 +3,10 @@ package me.rescue.hack.rescueme;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -19,8 +23,8 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -29,11 +33,13 @@ import java.util.List;
 import java.util.Map;
 
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MainActivity extends FragmentActivity implements OnMapReadyCallback, AdapterView.OnItemSelectedListener {
 
-    private static final String USER = "juanjo";
+    private String user;
     private GoogleMap mMap;
     private TextView lastLocation;
+    private List<String> users;
+    private DatabaseReference mFirebaseDatabaseReference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +51,32 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
 
         lastLocation = (TextView) findViewById(R.id.last_location);
+
+        users = new ArrayList<>();
+        users.add("Select user");
+        user = users.get(0);
+
+        mFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
+
+        mFirebaseDatabaseReference.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Map<String, Object> value = (Map<String, Object>) dataSnapshot.getValue();
+                users.clear();
+                users.addAll(value.keySet());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) { }
+        });
+
+        Spinner spinner = (Spinner) findViewById(R.id.users);
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, users);
+        spinnerAdapter
+                .setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(spinnerAdapter);
+        spinner.setOnItemSelectedListener(this);
     }
 
 
@@ -60,14 +92,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        if (!user.equals("Select user")) showPositions();
+    }
 
+    private void showPositions() {
         final List<Position> positions = new ArrayList<>();
         final Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(getLatLng(positions)).width(5).color(Color.BLUE));
         MarkerOptions markerOptions = new MarkerOptions().position(new LatLng(90.0, 180.0)).title("Última posición");
         final Marker marker = mMap.addMarker(markerOptions);
 
-        DatabaseReference mFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
-        mFirebaseDatabaseReference.child("users").child(USER).child("positions").addChildEventListener(new ChildEventListener() {
+        mFirebaseDatabaseReference.child("users").child(user).child("positions").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 Map<Integer, Object> value = (Map<Integer, Object>) dataSnapshot.getValue();
@@ -99,26 +133,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
-            }
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) { }
 
             @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-            }
+            public void onChildRemoved(DataSnapshot dataSnapshot) { }
 
             @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-            }
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) { }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
+            public void onCancelled(DatabaseError databaseError) { }
         });
-
     }
 
     private List<LatLng> getLatLng(List<Position> Positions) {
@@ -128,6 +153,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
         return latLngs;
     }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        user = parent.getItemAtPosition(position).toString();
+        mMap.clear();
+        showPositions();
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) { }
 
     private class Position {
         public LatLng latLng;
