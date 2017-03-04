@@ -10,6 +10,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.database.ChildEventListener;
@@ -54,6 +56,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         final List<LatLng> latLngs = new ArrayList<>();
         final Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(latLngs).width(5).color(Color.BLUE));
+        MarkerOptions markerOptions = new MarkerOptions().position(new LatLng(90.0, 180.0)).title("Última posición");
+        final Marker marker = mMap.addMarker(markerOptions);
 
         DatabaseReference mFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
         mFirebaseDatabaseReference.child("users").child("juanjo").child("positions").addChildEventListener(new ChildEventListener() {
@@ -65,6 +69,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 LatLng latLng = new LatLng(lat, lon);
                 latLngs.add(latLng);
                 polyline.setPoints(latLngs);
+                marker.setPosition(latLng);
             }
 
             @Override
