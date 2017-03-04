@@ -23,17 +23,17 @@ public class RescueMeFirebaseMessagingService extends FirebaseMessagingService {
                 remoteMessage.getNotification());
         Log.d(TAG, "FCM Data Message: " + remoteMessage.getData());
         //Calling method to generate notification
-        sendNotification(remoteMessage.getNotification().getBody());
+        sendNotification(remoteMessage.getData().get("message"));
     }
 
     //This method is only generating push notification
     //It is same as we did in earlier posts
     private void sendNotification(String message) {
-//        Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + "659984265"));
-//        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
-//
-//        Intent intent2 = new Intent(this, MainActivity.class);
-//        PendingIntent contentIntent2 = PendingIntent.getActivity(this, 0, intent2, PendingIntent.FLAG_ONE_SHOT);
+        Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + "659984265"));
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
+
+        Intent intent2 = new Intent(this, MainActivity.class);
+        PendingIntent contentIntent2 = PendingIntent.getActivity(this, 0, intent2, PendingIntent.FLAG_ONE_SHOT);
 
         Notification notification = new NotificationCompat.Builder(this)
                 .setCategory(Notification.CATEGORY_PROMO)
@@ -42,9 +42,9 @@ public class RescueMeFirebaseMessagingService extends FirebaseMessagingService {
                 .setSmallIcon(R.drawable.notification_icon)
                 .setColor(ResourcesCompat.getColor(getResources(), R.color.colorAlert, null))
                 .setAutoCancel(true)
-//                .addAction(android.R.drawable.ic_menu_call, "Call picha corta", contentIntent)
-//                .addAction(android.R.drawable.ic_menu_mapmode, "Abrir map", contentIntent2)
-//                .setContentIntent(contentIntent2)
+                .addAction(android.R.drawable.ic_menu_call, "Call 112", contentIntent)
+                .addAction(android.R.drawable.ic_menu_mapmode, "View track", contentIntent2)
+                .setContentIntent(contentIntent2)
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setVibrate(new long[]{1000, 1000, 1000, 1000, 1000})
                 .build();
