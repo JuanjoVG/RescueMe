@@ -3,12 +3,12 @@ package me.rescue.hack.rescueme;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
-import android.util.Log;
+import android.widget.TextView;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -20,15 +20,20 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
 
+    private static final String USER = "juanjo";
     private GoogleMap mMap;
+    private TextView lastLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +43,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        lastLocation = (TextView) findViewById(R.id.last_location);
     }
 
 
@@ -54,22 +61,41 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        final List<LatLng> latLngs = new ArrayList<>();
-        final Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(latLngs).width(5).color(Color.BLUE));
+        final List<Position> positions = new ArrayList<>();
+        final Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(getLatLng(positions)).width(5).color(Color.BLUE));
         MarkerOptions markerOptions = new MarkerOptions().position(new LatLng(90.0, 180.0)).title("Última posición");
         final Marker marker = mMap.addMarker(markerOptions);
 
         DatabaseReference mFirebaseDatabaseReference = FirebaseDatabase.getInstance().getReference();
-        mFirebaseDatabaseReference.child("users").child("juanjo").child("positions").addChildEventListener(new ChildEventListener() {
+        mFirebaseDatabaseReference.child("users").child(USER).child("positions").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                Map<Integer, Double> value = (Map<Integer, Double>) dataSnapshot.getValue();
-                Double lat = value.get("lat");
-                Double lon = value.get("lon");
+                Map<Integer, Object> value = (Map<Integer, Object>) dataSnapshot.getValue();
+                Double lat = (Double) value.get("lat");
+                Double lon = (Double) value.get("lon");
+                Boolean alert = (Boolean) value.get("alert");
+                Long time = (Long) value.get("time");
                 LatLng latLng = new LatLng(lat, lon);
-                latLngs.add(latLng);
-                polyline.setPoints(latLngs);
+                Position position = new Position(latLng, alert);
+                positions.add(position);
+                polyline.setPoints(getLatLng(positions));
                 marker.setPosition(latLng);
+                if (alert != null && alert) {
+                    mMap.addMarker(new MarkerOptions()
+                            .position(latLng)
+                            .title("Posición alerta")
+                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.alert_icon)));
+                }
+                if (time != null) {
+                    String text = "Última ubicación: ";
+                    Calendar calendar = GregorianCalendar.getInstance();
+                    calendar.setTime(new Date(time));
+                    text += calendar.get(Calendar.DAY_OF_MONTH) + "/";
+                    text += calendar.get(Calendar.MONTH) + 1 + " ";
+                    text += calendar.get(Calendar.HOUR_OF_DAY) + ":";
+                    text += calendar.get(Calendar.MINUTE);
+                    lastLocation.setText(text);
+                }
             }
 
             @Override
@@ -93,5 +119,23 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
+    }
+
+    private List<LatLng> getLatLng(List<Position> Positions) {
+        List<LatLng> latLngs = new ArrayList<>();
+        for (Position position : Positions) {
+            latLngs.add(position.latLng);
+        }
+        return latLngs;
+    }
+
+    private class Position {
+        public LatLng latLng;
+        public Boolean alert;
+
+        public Position(LatLng latLng, Boolean alert) {
+            this.latLng = latLng;
+            this.alert = alert;
+        }
     }
 }
