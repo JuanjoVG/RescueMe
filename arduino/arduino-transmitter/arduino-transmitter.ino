@@ -18,6 +18,12 @@ int adc_key_in  = 0;
 
 #define INTERRUPTOR_PIN 15
 
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+#define IS_ARDUINO_MEGA 1
+#else
+#define IS_ARDUINO_MEGA 0
+#endif
+
 //Modes
 #define TX_MODE   0
 #define RX_MODE   1
@@ -113,6 +119,12 @@ void readCoordinates() {
   }
 }
 
+void changeMode() {
+  lcd.setCursor(14,0);
+  if(mode==TX_MODE) {mode=RX_MODE; lcd.print("RX");}
+  else {mode=TX_MODE; lcd.print("TX");}
+}
+
 /*********** Setup ************/
 void setup() {
     //default mode
@@ -152,16 +164,11 @@ void loop() {
   digitalWrite(BACKLIGHT_PIN, HIGH);
 
   //Get pushed Key
-  //lcd_key = read_LCD_buttons();
-  //if( lcd_key != btnNONE) {
-  if(digitalRead(INTERRUPTOR_PIN)==HIGH) {
-    lcd.setCursor(14,0);
-    if(mode==TX_MODE) {mode=RX_MODE; lcd.print("RX");}
-    else {mode=TX_MODE; lcd.print("TX");}
-  }
-    //else if ( lcd_key == btnNONE)
-    //  lcd.print("NONE  ");
-
+  if (IS_ARDUINO_MEGA) {
+    lcd_key = read_LCD_buttons();
+    if( lcd_key != btnNONE) changeMode();
+  } else if(digitalRead(INTERRUPTOR_PIN)==HIGH) changeMode();
+  
   //MODE switch
   if (mode==TX_MODE) { //Transmit mode
     //Serial.println("TX_MODE");
