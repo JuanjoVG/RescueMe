@@ -162,6 +162,7 @@ void setup() {
 void loop() {
   //Backlight encendido
   digitalWrite(BACKLIGHT_PIN, HIGH);
+  //lcd.clear();
 
   //Get pushed Key
   if (IS_ARDUINO_MEGA) {
@@ -174,8 +175,12 @@ void loop() {
     //Serial.println("TX_MODE");
     //tone(BEEP_PIN, BEEP_FREQ, 100);
     sendPosition();
+    lcd.setCursor(0,0);
+    lcd.print("          ");
     lcd.setCursor(14,0);
     lcd.print("TX");
+    lcd.setCursor(0,1);
+    lcd.print("          ");
     lcd.setCursor(10,1);
     lcd.print("DANGER");
     //send alert to BT
@@ -185,7 +190,11 @@ void loop() {
       readCoordinates();
     }
     lcd.setCursor(0,0);
+    lcd.print("          ");
+    lcd.setCursor(0,0);
     lcd.print(gpsPosition_lat);
+    lcd.setCursor(0,1);
+    lcd.print("          ");
     lcd.setCursor(0,1);
     lcd.print(gpsPosition_long);
     /*
@@ -221,14 +230,18 @@ void loop() {
       lcd.setCursor(10,1);
       lcd.print("ALERT!");
       lcd.setCursor(0,0);
+      lcd.print("          ");
+      lcd.setCursor(0,0);
       lcd.print(peer_gpsPosition_lat);
+      lcd.setCursor(0,1);
+      lcd.print("          ");
       lcd.setCursor(0,1);
       lcd.print(peer_gpsPosition_long);  
     } else if (ALERT==15) {
       lcd.setCursor(10,1);
       lcd.print("------");
       lcd.setCursor(0,0);
-      lcd.print("              ");
+      lcd.print("          ");
       lcd.setCursor(0,1);
       lcd.print("nobody in danger");  
     }
