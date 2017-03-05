@@ -16,6 +16,8 @@ int adc_key_in  = 0;
 #define btnSELECT 4
 #define btnNONE   5
 
+#define INTERRUPTOR_PIN 15
+
 //Modes
 #define TX_MODE   0
 #define RX_MODE   1
@@ -34,11 +36,19 @@ uint8_t buf2len = VW_MAX_MESSAGE_LEN;
 #define ACK_RECEIVED 1
 int ACK = 0;
 int ALERT = 0;
+int SEND_ALERT = 1;
 String gpsPosition_lat = "41.389224";   //segundo dato para enviar
 String gpsPosition_long = "2.113059";   //segundo dato para enviar
 
 String peer_gpsPosition_lat = "0";   //segundo dato para enviar
 String peer_gpsPosition_long = "0";   //segundo dato para enviar
+
+//BEEP
+#define BEEP_PIN 14
+#define BEEP_FREQ 2000
+
+//BT
+char data = 0;
 
 /*********** Functions ************/
 int read_LCD_buttons() { 
@@ -84,11 +94,22 @@ void listenRF() {
         else peer_gpsPosition_long.concat((char)buf2[i]);
       }
       ALERT = 0;
-      Serial.print("RX - LAT:");
-      Serial.print(peer_gpsPosition_lat);
-      Serial.print(" LON:");
-      Serial.println(peer_gpsPosition_long);
+      //Serial.print("RX - LAT:");
+      //Serial.print(peer_gpsPosition_lat);
+      //Serial.print(" LON:");
+      //Serial.println(peer_gpsPosition_long);
     }
+  }
+}
+
+void readCoordinates() {
+  String str = "";
+  if(Serial.available() > 0) { // Send data only when you receive data:
+    str = Serial.readStringUntil('#');//Read the incoming data & store into data      
+    Serial.print(str);
+    int commaIndex = str.indexOf('/');
+    gpsPosition_lat = str.substring(0, commaIndex);
+    gpsPosition_long = str.substring(commaIndex + 1);
   }
 }
 
@@ -96,6 +117,8 @@ void listenRF() {
 void setup() {
     //default mode
     mode = RX_MODE;
+    //pinMode(14, INPUT);
+    pinMode(INTERRUPTOR_PIN, INPUT);
   
     //LCD Shield
     pinMode(BACKLIGHT_PIN, OUTPUT); //backlight
@@ -104,7 +127,7 @@ void setup() {
     lcd.setCursor(0,0);
     lcd.print("RescueMe      RX");     // print a simple message
     
-    //Serial Debug
+    //Serial Debug + BT
     Serial.begin(9600);    // Debugging only
 
     // Se inicializa el RF
@@ -118,6 +141,9 @@ void setup() {
     //lcd.setCursor(0,1);              // Cursor a linea 2, posicion 1
     //lcd.print("ID:");
     //lcd.print(arduino_id);
+
+    //beep
+    pinMode(BEEP_PIN, OUTPUT);
 }
 
 /*********** Main Loop ************/
@@ -126,31 +152,32 @@ void loop() {
   digitalWrite(BACKLIGHT_PIN, HIGH);
 
   //Get pushed Key
-  lcd_key = read_LCD_buttons();
-    if( lcd_key == btnRIGHT)
-      lcd.print("RIGHT ");
-    else if ( lcd_key == btnLEFT )
-      lcd.print("LEFT   ");
-    else if ( lcd_key == btnUP)
-      lcd.print("UP    ");
-    else if ( lcd_key == btnDOWN)
-      lcd.print("DOWN  ");
-    else if ( lcd_key == btnSELECT) {
-      lcd.setCursor(14,0);
-      if(mode==TX_MODE) {mode=RX_MODE; lcd.print("RX");}
-      else {mode=TX_MODE; lcd.print("TX");}
-    }
+  //lcd_key = read_LCD_buttons();
+  //if( lcd_key != btnNONE) {
+  if(digitalRead(INTERRUPTOR_PIN)==HIGH) {
+    Serial.print(digitalRead(INTERRUPTOR_PIN));
+    lcd.setCursor(14,0);
+    if(mode==TX_MODE) {mode=RX_MODE; lcd.print("RX");}
+    else {mode=TX_MODE; lcd.print("TX");}
+  }
     //else if ( lcd_key == btnNONE)
     //  lcd.print("NONE  ");
 
   //MODE switch
   if (mode==TX_MODE) { //Transmit mode
     //Serial.println("TX_MODE");
+    //tone(BEEP_PIN, BEEP_FREQ, 100);
     sendPosition();
     lcd.setCursor(14,0);
     lcd.print("TX");
     lcd.setCursor(10,1);
     lcd.print("DANGER");
+    //send alert to BT
+    if(SEND_ALERT) {
+      Serial.print("-ALERT");
+      SEND_ALERT=0;
+      readCoordinates();
+    }
     lcd.setCursor(0,0);
     lcd.print(gpsPosition_lat);
     lcd.setCursor(0,1);
@@ -172,7 +199,8 @@ void loop() {
     delay(100);
   } 
   else if (mode==RX_MODE) {//Receive mode
-    Serial.println("RX_MODE");
+    SEND_ALERT=1;
+    //Serial.println("RX_MODE");
     //clear info
     
     //peer_gpsPosition_lat="0";
@@ -182,6 +210,7 @@ void loop() {
     lcd.setCursor(14,0);
     lcd.print("RX");
     if (ALERT < 15) {
+      tone(BEEP_PIN, BEEP_FREQ, 100);
       ALERT=ALERT+1;
       lcd.setCursor(10,1);
       lcd.print("ALERT!");
@@ -195,7 +224,7 @@ void loop() {
       lcd.setCursor(0,0);
       lcd.print("              ");
       lcd.setCursor(0,1);
-      lcd.print("anyone in danger");  
+      lcd.print("nobody in danger");  
     }
     delay(200);
   } else if (ALERT_MODE) {
