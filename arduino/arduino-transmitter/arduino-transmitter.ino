@@ -71,10 +71,10 @@ void sendPosition() {
   String str=""; 
 
   //body
-  Serial.print("TX - LAT:");
-  Serial.print(gpsPosition_lat);
-  Serial.print(" LON:");
-  Serial.println(gpsPosition_long);
+  //Serial.print("TX - LAT:");
+  //Serial.print(gpsPosition_lat);
+  //Serial.print(" LON:");
+  //Serial.println(gpsPosition_long);
   str="x"+gpsPosition_lat+"y"+gpsPosition_long; //convertimos el entero a String y agramos un inicio de trama
   str.toCharArray(buf,sizeof(buf)); //convertimos el String en un array
   vw_send((uint8_t *)buf, strlen(buf)); //Enviamos el array
@@ -155,7 +155,6 @@ void loop() {
   //lcd_key = read_LCD_buttons();
   //if( lcd_key != btnNONE) {
   if(digitalRead(INTERRUPTOR_PIN)==HIGH) {
-    Serial.print(digitalRead(INTERRUPTOR_PIN));
     lcd.setCursor(14,0);
     if(mode==TX_MODE) {mode=RX_MODE; lcd.print("RX");}
     else {mode=TX_MODE; lcd.print("TX");}
